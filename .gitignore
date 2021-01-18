@@ -1,0 +1,9 @@
+*.class
+*.log
+.DS_Store
+.idea
+dependency-reduced-pom.xml
+*.iml
+target
+metastore_db
+
