@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- This will NOT be used for the paytm demo app -->
+
+
+
+<!-- This file does NOT belong to resources folder, i just put it here for this demo project-->
+
+<Configuration status="warn">
+    <Properties>
+
+        <!--
+        normally we would pull in env variables here
+         <Property name="basePath">$${env:CSDPRICING_HOME}/logs/$${env:CSDPRICING_APP_SUBDIR}</Property>
+        -->
+
+
+        <Property name="logsFolder">logs</Property>
+
+    </Properties>
+
+    <Appenders>
+        <RollingFile name="fileLogger">
+            <FileName>${basePath}/${appName}${subenv}.log</FileName>
+            <FilePattern>${basePath}/${appName}${subenv}-%d{yyyy-MM-dd}.log.zip</FilePattern>
+            <PatternLayout>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] [%t] %c{30} - %msg%n</pattern>
+
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+            <!--<DefaultRolloverStrategy max="10" />-->
+            <DefaultRolloverStrategy>
+                <Delete basePath="${basePath}" maxDepth="2">
+                    <IfFileName glob="*.log.zip" />
+                    <IfLastModified age="10d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout   pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5level] [%t] %c{1} - %msg%n" />
+        </Console>
+    </Appenders>
+    <Loggers>
+        <!--<Logger name="com.spglobal.csd.pricing.logger" level="debug" additivity="true">
+            <appender-ref ref="fileLogger" level="debug" />
+        </Logger>-->
+        <Root level="info" additivity="false">
+            <appender-ref ref="console" />
+            <appender-ref ref="fileLogger" />
+        </Root>
+    </Loggers>
+</Configuration>
