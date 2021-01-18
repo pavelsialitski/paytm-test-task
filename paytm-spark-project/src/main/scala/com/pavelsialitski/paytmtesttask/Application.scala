@@ -20,11 +20,11 @@ object Application extends App {
   val parser = new scopt.OptionParser[ApplicationConfig](applicationName) {
     head(applicationName, "1.0")
 
-    opt[Int]('C', "cc").action( (x, c) =>
-      c.copy(cc = x) ).text("foo is an integer property")
+    opt[String]("inputFilePath").action( (x, c) =>
+      c.copy( inputFilePath = x) ).text("path to input file")
 
-    opt[Boolean]('B', "myBoolParam").action( (x, c) =>
-      c.copy( myBoolParam = x) ).text("myBoolParam is a bool param")
+    opt[Unit]("headerIncluded").action( (_, c) =>
+      c.copy( header = true) ).text("mention this flag if the csv file includes the header")
 
     opt[String]("csdPricingAppName").action( (x, c) =>
       c.copy( applicationName = x) ).text("application name is loaded from env config but can be overwritten from command line")
@@ -50,7 +50,6 @@ object Application extends App {
   worker.run()
 
   logger.info("Exiting the application: " + this.getClass.getPackage)
-
 
 
 }
