@@ -1,6 +1,7 @@
 package com.pavelsialitski.paytmtesttask
 
 import org.apache.log4j.Logger
+import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DoubleType
 
@@ -72,7 +73,7 @@ class Worker (config: ApplicationConfig) extends InitSpark {
 
 
 
-    // Which country had the hottest average mean temperature over the year?
+    // 1. Which country had the hottest average mean temperature over the year?
     // column TEMP
 
 
@@ -81,12 +82,32 @@ class Worker (config: ApplicationConfig) extends InitSpark {
       .withColumn("TEMP_DOUBLE", col("TEMP").cast(DoubleType))
       .groupBy("COUNTRY_FULL","YEAR")
       .agg(avg("TEMP_DOUBLE").as("AVG_MEAN_YEARLY"))
-      .orderBy(desc("AVG_MEAN_YEARLY"))
+      .orderBy(desc("YEAR"),
+
+        desc("AVG_MEAN_YEARLY"))
 
 
-    hottestAverageMeanTemp.show()
+    hottestAverageMeanTemp.show(1000)
 
 
+    // 3. Which country had the second highest average mean wind speed over the year?
+
+    val windowSpec: WindowSpec = Window
+      .partitionBy("YEAR")
+      .orderBy(desc("AVG_WDSP_MEAN_YEARLY"))
+
+    // Could do this through group by and order - but Windows is amore universal way for his task (what if asked for 10th place)
+
+    val highestAverageWindSpeed = dataWithCountryNameDF
+      .filter(col("WDSP").notEqual("999.9"))
+      .withColumn("WDSP_DOUBLE", col("WDSP").cast(DoubleType))
+      .groupBy("COUNTRY_FULL","YEAR")
+      .agg(avg("WDSP_DOUBLE").as("AVG_WDSP_MEAN_YEARLY"))
+      .withColumn("WDSP_YEAR_RATING", row_number.over(windowSpec))
+      .filter("WDSP_YEAR_RATING < 5")
+
+
+    highestAverageWindSpeed.show()
 
 
 
