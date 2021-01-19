@@ -1,7 +1,8 @@
 package com.pavelsialitski.paytmtesttask
 
 import org.apache.log4j.Logger
-import org.apache.spark.sql.functions.sum
+import org.apache.spark.sql.functions._
+
 
 
 class Worker (config: ApplicationConfig) extends InitSpark {
@@ -35,23 +36,38 @@ class Worker (config: ApplicationConfig) extends InitSpark {
     //pull in config
     val inputFilePath: String = config.inputFilePath
     val header: Boolean = config.header
+    val countryListFilePath: String = config.countryListFile
+    val stationListFilePath: String = config.stationListFile
+    val dataFolder: String = config.dataFolder
 
 
-
-
-    // test run
-    val sumHundred = spark.range(1, 101).toDF("Number").agg(sum("Number").as("Sum 1 to 100") )
-    sumHundred.show()
-    // End of test run
-
-    // Load test file
-    val inputFileDF = spark.read.option("header",header).csv(inputFilePath)
-
-    inputFileDF.show(100)
 
 
     // End of load test file
 
+    val countryDF = spark.read.option("header",header).csv(countryListFilePath)
+    //countryDF.show()
+
+    val stationDF = spark.read.option("header",header).csv(stationListFilePath)
+    //stationDF.show
+
+
+    val stationsWithCuntryNames = countryDF
+      .join(stationDF,Seq("COUNTRY_ABBR"),"inner")
+
+    stationsWithCuntryNames.show(1000)
+
+    val weatherDataDF = spark.read.option("header",header).csv(dataFolder)
+      .withColumnRenamed("STN---","STN_NO")
+
+    weatherDataDF.show()
+    //weatherDataDF.count()
+
+    val dataWithCountryNameDF = stationsWithCuntryNames
+      .join(weatherDataDF, Seq("STN_NO"), "inner")
+      .withColumn("YEAR",substring(col("YEARMODA"),0,4))
+
+    dataWithCountryNameDF.show
 
 
 
