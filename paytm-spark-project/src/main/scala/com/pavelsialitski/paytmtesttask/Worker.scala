@@ -80,11 +80,16 @@ class Worker (config: ApplicationConfig) extends InitSpark {
       .filter(col("TEMP").notEqual("9999.9"))
       .withColumn("TEMP_DOUBLE", col("TEMP").cast(DoubleType))
       .groupBy("COUNTRY_FULL","YEAR")
-      .agg(max("TEMP_DOUBLE").as("MAX_MEAN_YEARLY"))
-      .orderBy(desc("MAX_MEAN_YEARLY"))
+      .agg(avg("TEMP_DOUBLE").as("AVG_MEAN_YEARLY"))
+      .orderBy(desc("AVG_MEAN_YEARLY"))
 
 
     hottestAverageMeanTemp.show()
+
+
+
+
+
 
 
 
