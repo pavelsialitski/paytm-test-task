@@ -2,6 +2,7 @@ package com.pavelsialitski.paytmtesttask
 
 import org.apache.log4j.Logger
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.DoubleType
 
 
 
@@ -55,19 +56,37 @@ class Worker (config: ApplicationConfig) extends InitSpark {
     val stationsWithCuntryNames = countryDF
       .join(stationDF,Seq("COUNTRY_ABBR"),"inner")
 
-    stationsWithCuntryNames.show(1000)
+    //stationsWithCuntryNames.show()
 
     val weatherDataDF = spark.read.option("header",header).csv(dataFolder)
       .withColumnRenamed("STN---","STN_NO")
 
-    weatherDataDF.show()
+    //weatherDataDF.show()
     //weatherDataDF.count()
 
     val dataWithCountryNameDF = stationsWithCuntryNames
       .join(weatherDataDF, Seq("STN_NO"), "inner")
       .withColumn("YEAR",substring(col("YEARMODA"),0,4))
 
-    dataWithCountryNameDF.show
+    //dataWithCountryNameDF.describe()
+
+
+
+    // Which country had the hottest average mean temperature over the year?
+    // column TEMP
+
+
+    val hottestAverageMeanTemp = dataWithCountryNameDF
+      .filter(col("TEMP").notEqual("9999.9"))
+      .withColumn("TEMP_DOUBLE", col("TEMP").cast(DoubleType))
+      .groupBy("COUNTRY_FULL","YEAR")
+      .agg(max("TEMP_DOUBLE").as("MAX_MEAN_YEARLY"))
+      .orderBy(desc("MAX_MEAN_YEARLY"))
+
+
+    hottestAverageMeanTemp.show()
+
+
 
 
 
