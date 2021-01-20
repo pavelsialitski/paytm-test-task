@@ -110,6 +110,27 @@ class Worker (config: ApplicationConfig) extends InitSpark {
     highestAverageWindSpeed.show()
 
 
+    //2. Which country had the most consecutive days of tornadoes/funnel cloud
+    //formations?
+
+    val windowSpecByDate: WindowSpec = Window
+      .partitionBy("YEAR", "COUNTRY_FULL")
+      .orderBy(asc("DATE"))
+
+    val consecutiveTornadoDays = dataWithCountryNameDF
+      .withColumn("TORNADO",substring(col("FRSHTT"),6,1) )
+      .filter(col("TORNADO").equalTo("1"))
+      .withColumn("DATE", to_date(col("YEARMODA"),"yyyyMMdd"))
+      .withColumn("DATE_RANK", row_number.over(windowSpecByDate))
+      .withColumn("RANGE_START", date_add(col("DATE"),-col("DATE_RANK")))
+
+
+
+
+    consecutiveTornadoDays.show()
+
+
+
 
 
 
