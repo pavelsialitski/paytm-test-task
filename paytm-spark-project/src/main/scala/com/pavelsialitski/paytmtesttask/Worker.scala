@@ -123,6 +123,9 @@ class Worker (config: ApplicationConfig) extends InitSpark {
       .withColumn("DATE", to_date(col("YEARMODA"),"yyyyMMdd"))
       .withColumn("DATE_RANK", row_number.over(windowSpecByDate))
       .withColumn("RANGE_START", date_add(col("DATE"),-col("DATE_RANK")))
+      .groupBy("YEAR","COUNTRY_FULL", "RANGE_START")
+      .agg(count("*").as("CONS_TORNADO_DAYS"))
+      .orderBy(desc("CONS_TORNADO_DAYS"))
 
 
 
