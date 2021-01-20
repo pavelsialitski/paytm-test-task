@@ -121,21 +121,16 @@ class Worker (config: ApplicationConfig) extends InitSpark {
       .withColumn("TORNADO",substring(col("FRSHTT"),6,1) )
       .filter(col("TORNADO").equalTo("1"))
       .withColumn("DATE", to_date(col("YEARMODA"),"yyyyMMdd"))
-      .withColumn("DATE_RANK", row_number.over(windowSpecByDate))
+      .withColumn("DATE_RANK", dense_rank().over(windowSpecByDate))
       .withColumn("RANGE_START", date_add(col("DATE"),-col("DATE_RANK")))
       .groupBy("YEAR","COUNTRY_FULL", "RANGE_START")
-      .agg(count("*").as("CONS_TORNADO_DAYS"))
+      .agg(countDistinct("DATE").as("CONS_TORNADO_DAYS"))
       .orderBy(desc("CONS_TORNADO_DAYS"))
 
 
 
 
     consecutiveTornadoDays.show()
-
-
-
-
-
 
 
 
