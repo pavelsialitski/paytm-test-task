@@ -1,7 +1,10 @@
 package com.pavelsialitski.paytmtesttask
 
 import org.apache.log4j.Logger
-import org.apache.spark.sql.functions.sum
+import org.apache.spark.sql.expressions.{Window, WindowSpec}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.DoubleType
+
 
 
 class Worker (config: ApplicationConfig) extends InitSpark {
@@ -35,22 +38,104 @@ class Worker (config: ApplicationConfig) extends InitSpark {
     //pull in config
     val inputFilePath: String = config.inputFilePath
     val header: Boolean = config.header
+    val countryListFilePath: String = config.countryListFile
+    val stationListFilePath: String = config.stationListFile
+    val dataFolder: String = config.dataFolder
 
 
-
-
-    // test run
-    val sumHundred = spark.range(1, 101).toDF("Number").agg(sum("Number").as("Sum 1 to 100") )
-    sumHundred.show()
-    // End of test run
-
-    // Load test file
-    val inputFileDF = spark.read.option("header",header).csv(inputFilePath)
-
-    inputFileDF.show(100)
 
 
     // End of load test file
+
+    val countryDF = spark.read.option("header",header).csv(countryListFilePath)
+    //countryDF.show()
+
+    val stationDF = spark.read.option("header",header).csv(stationListFilePath)
+    //stationDF.show
+
+
+    val stationsWithCuntryNames = countryDF
+      .join(stationDF,Seq("COUNTRY_ABBR"),"inner")
+
+    //stationsWithCuntryNames.show()
+
+    val weatherDataDF = spark.read.option("header",header).csv(dataFolder)
+      .withColumnRenamed("STN---","STN_NO")
+
+    //weatherDataDF.show()
+    //weatherDataDF.count()
+
+    val dataWithCountryNameDF = stationsWithCuntryNames
+      .join(weatherDataDF, Seq("STN_NO"), "inner")
+      .withColumn("YEAR",substring(col("YEARMODA"),0,4))
+
+    //dataWithCountryNameDF.describe()
+
+
+
+    // 1. Which country had the hottest average mean temperature over the year?
+    // column TEMP
+
+
+    val hottestAverageMeanTemp = dataWithCountryNameDF
+      .filter(col("TEMP").notEqual("9999.9"))
+      .withColumn("TEMP_DOUBLE", col("TEMP").cast(DoubleType))
+      .groupBy("COUNTRY_FULL","YEAR")
+      .agg(avg("TEMP_DOUBLE").as("AVG_MEAN_YEARLY"))
+      .orderBy(desc("YEAR"),
+
+        desc("AVG_MEAN_YEARLY"))
+
+
+    hottestAverageMeanTemp.show(1000)
+
+
+    // 3. Which country had the second highest average mean wind speed over the year?
+
+    val windowSpec: WindowSpec = Window
+      .partitionBy("YEAR")
+      .orderBy(desc("AVG_WDSP_MEAN_YEARLY"))
+
+    // Could do this through group by and order - but Windows is amore universal way for his task (what if asked for 10th place)
+
+    val highestAverageWindSpeed = dataWithCountryNameDF
+      .filter(col("WDSP").notEqual("999.9"))
+      .withColumn("WDSP_DOUBLE", col("WDSP").cast(DoubleType))
+      .groupBy("COUNTRY_FULL","YEAR")
+      .agg(avg("WDSP_DOUBLE").as("AVG_WDSP_MEAN_YEARLY"))
+      .withColumn("WDSP_YEAR_RATING", row_number.over(windowSpec))
+      .filter("WDSP_YEAR_RATING < 5")
+
+
+    highestAverageWindSpeed.show()
+
+
+    //2. Which country had the most consecutive days of tornadoes/funnel cloud
+    //formations?
+
+    val windowSpecByDate: WindowSpec = Window
+      .partitionBy("YEAR", "COUNTRY_FULL")
+      .orderBy(asc("DATE"))
+
+    val consecutiveTornadoDays = dataWithCountryNameDF
+      .withColumn("TORNADO",substring(col("FRSHTT"),6,1) )
+      .filter(col("TORNADO").equalTo("1"))
+      .withColumn("DATE", to_date(col("YEARMODA"),"yyyyMMdd"))
+      .withColumn("DATE_RANK", row_number.over(windowSpecByDate))
+      .withColumn("RANGE_START", date_add(col("DATE"),-col("DATE_RANK")))
+      .groupBy("YEAR","COUNTRY_FULL", "RANGE_START")
+      .agg(count("*").as("CONS_TORNADO_DAYS"))
+      .orderBy(desc("CONS_TORNADO_DAYS"))
+
+
+
+
+    consecutiveTornadoDays.show()
+
+
+
+
+
 
 
 
